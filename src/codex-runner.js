@@ -2,11 +2,13 @@ import { spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { mkdir,readFile,mkdtemp,rm,writeFile,open,stat } from 'node:fs/promises';
 import { resolve,join } from 'node:path';
+import { resolveCodexExecutable } from './codex-executable.js';
 
-export function createCodexRunner({root,executable='codex',spawnProcess=spawn,timeoutMs=120000,maxBytes=1024*1024,authHome}={}) {
+export function createCodexRunner({root,executable,spawnProcess=spawn,timeoutMs=120000,maxBytes=1024*1024,authHome}={}) {
  if (!root) throw new Error('Worker root required');
  return async (job,{signal}={}) => {
   if(typeof job?.payload?.text!=='string'||Buffer.byteLength(job.payload.text)>65536) throw new Error('Invalid Codex input');
+  const codexExecutable=await resolveCodexExecutable({executable});
   const sessionDir=resolve(root,createHash('sha256').update(job.session).digest('hex'));
   await mkdir(sessionDir,{recursive:true});
   const runDir=await mkdtemp(join(sessionDir,'run-'));
@@ -30,7 +32,7 @@ export function createCodexRunner({root,executable='codex',spawnProcess=spawn,ti
     const abort=()=>stop('Worker cancelled');
     if(signal?.aborted) return done(new Error('Worker cancelled'));
     // File descriptors work on Windows installations that deny anonymous pipes.
-    try {child=spawnProcess(executable,args,{env,windowsHide:true,shell:false,stdio:[inputHandle.fd,logHandle.fd,logHandle.fd]});} catch(e) {return done(new Error(`Codex process unavailable (${e.code||'unknown'})`));}
+    try {child=spawnProcess(codexExecutable,args,{env,windowsHide:true,shell:false,stdio:[inputHandle.fd,logHandle.fd,logHandle.fd]});} catch(e) {return done(new Error(`Codex process unavailable (${e.code||'unknown'})`));}
     signal?.addEventListener('abort',abort,{once:true});
     timer=setTimeout(()=>stop('Codex timeout'),timeoutMs);
     monitor=setInterval(async()=>{

@@ -6,7 +6,7 @@ if(!process.env.DATABASE_URL || !process.env.WORKER_ROOT || !process.env.CODEX_A
 const queue=PostgresQueue.connect(process.env.DATABASE_URL);
 const controller=new AbortController();
 for(const signal of ['SIGINT','SIGTERM'])process.on(signal,()=>controller.abort());
-const run=createCodexRunner({root:process.env.WORKER_ROOT,authHome:process.env.CODEX_AUTH_HOME,executable:process.env.CODEX_BIN||'codex'});
+const run=createCodexRunner({root:process.env.WORKER_ROOT,authHome:process.env.CODEX_AUTH_HOME,executable:process.env.CODEX_BIN});
 try {
  await queue.migrate();
  while(!controller.signal.aborted) {

@@ -1,7 +1,7 @@
 import { createCodexRunner } from './codex-runner.js';
 const run=createCodexRunner({
  root:process.env.WORKER_ROOT||'work/codex-smoke',
- executable:process.env.CODEX_BIN||'codex',
+ executable:process.env.CODEX_BIN,
  authHome:process.env.CODEX_AUTH_HOME,
  timeoutMs:45000
 });
