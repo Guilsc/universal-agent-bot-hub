@@ -11,7 +11,15 @@ npm test
 npm run demo
 ```
 
-The original demo uses SQLite and a mock worker. A PostgreSQL queue adapter
-and Codex CLI process worker are now implemented; see
-[development setup](docs/development.md) for configuration and test limitations.
-Telegram networking and production deployment are pending.
+The complete Telegram flow supports polling or authenticated webhooks,
+PostgreSQL persistence, a Codex CLI worker, isolated conversation history and
+transactional outgoing replies. See [Telegram setup](docs/telegram.md).
+
+```sh
+# Configure .env and runtime secrets first
+npm start
+```
+
+The original SQLite mock demo remains available. See
+[development setup](docs/development.md) for tests and environment limitations.
+Production deployment has not been performed.

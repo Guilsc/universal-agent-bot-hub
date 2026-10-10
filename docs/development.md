@@ -14,6 +14,6 @@ Run `npm run smoke:codex` in a normal development terminal. On Windows the runne
 
 `npm test` runs PostgreSQL SQL against PGlite, a local embedded PostgreSQL engine, and tests simulated and real child processes. Set TEST_DATABASE_URL to a dedicated test database to also test simultaneous claims through independent PostgreSQL connections. This test creates and drops a unique test schema. The concurrency test passed locally on a native PostgreSQL 17.10 server with eight simultaneous pool connections. GitHub Actions is activated with a dedicated PostgreSQL 17 service. Embedded tests alone do not establish server concurrency correctness.
 
-The SQLite prototype remains available for its demo. This phase adds the PostgreSQL adapter; it does not migrate existing SQLite data. Telegram ingress/delivery, outbound outbox and production deployment remain pending.
+The SQLite prototype remains available for its demo. Existing SQLite data is not automatically migrated. Telegram ingress, delivery, history and the outbox are now implemented; see telegram.md. Production deployment remains pending.
 
 Codex execution reference: https://developers.openai.com/codex/noninteractive

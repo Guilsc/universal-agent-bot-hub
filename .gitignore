@@ -1,5 +1,8 @@
 node_modules/
 .env
+.env.*
+!.env.example
+secrets/
 *.db
 *.db-shm
 *.db-wal
