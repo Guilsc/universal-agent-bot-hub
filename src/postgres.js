@@ -4,8 +4,8 @@ import pg from 'pg';
 import { splitReply } from './telegram.js';
 
 export class PostgresQueue {
- constructor(pool, {maxAttempts=3}={}) {this.pool=pool;this.maxAttempts=maxAttempts;}
- static connect(connectionString) {return new PostgresQueue(new pg.Pool({connectionString}));}
+ constructor(pool, {maxAttempts=3,historyTurns=6}={}) {this.pool=pool;this.maxAttempts=maxAttempts;this.historyTurns=historyTurns;}
+ static connect(connectionString,options) {return new PostgresQueue(new pg.Pool({connectionString}),options);}
  async migrate() {
   await this.transaction(async client=>{
    await client.query('SELECT pg_advisory_xact_lock(724090)');
@@ -67,14 +67,25 @@ export class PostgresQueue {
   });
  }
  async context(job) {
-  const {rows}=await this.pool.query("SELECT payload->>'text' AS request,result->>'text' AS response FROM hub_jobs WHERE session=$1 AND state='done' AND sequence<$2 ORDER BY sequence DESC LIMIT 6",[job.session,job.sequence]);
+  const {rows}=await this.pool.query(`SELECT payload->>'text' AS request,result->>'text' AS response FROM hub_jobs
+   WHERE session=$1 AND state='done' AND sequence<$2 AND NOT(payload ? 'command')
+   AND sequence>COALESCE((SELECT max(sequence) FROM hub_jobs WHERE session=$1 AND sequence<$2
+    AND state='done' AND payload->>'command' IN ('new','reset')),0)
+   ORDER BY sequence DESC LIMIT $3`,[job.session,job.sequence,this.historyTurns]);
   return rows.reverse().map(row=>({request:row.request.slice(0,4000),response:(row.response||'').slice(0,4000)}));
  }
  async offset(bot) {const {rows}=await this.pool.query('SELECT next_update FROM hub_offsets WHERE bot=$1',[bot]);return Number(rows[0]?.next_update||0);}
  async recordUpdate(bot,updateId,job) {
   await this.transaction(async client=>{
-   if(job)await client.query('INSERT INTO hub_jobs(id,event_key,session,runtime,payload) VALUES($1,$2,$3,$4,$5) ON CONFLICT(event_key) DO NOTHING',
-    [randomUUID(),job.eventKey,job.session,job.runtime,JSON.stringify(job.payload)]);
+   if(job){
+    const inserted=await client.query('INSERT INTO hub_jobs(id,event_key,session,runtime,payload) VALUES($1,$2,$3,$4,$5) ON CONFLICT(event_key) DO NOTHING RETURNING id',
+     [randomUUID(),job.eventKey,job.session,job.runtime,JSON.stringify(job.payload)]);
+    if(inserted.rows.length&&job.payload.notifications&&!job.payload.command){
+     const delivery=job.payload.delivery;
+     await client.query(`INSERT INTO hub_outbox(id,job_id,session,bot,part,destination,text) VALUES($1,$2,$3,$4,-1,$5,$6)`,
+      [randomUUID(),inserted.rows[0].id,job.session,bot,JSON.stringify(delivery),'Recebi sua mensagem. Vou processar sua solicitação.']);
+    }
+   }
    await client.query('INSERT INTO hub_offsets(bot,next_update) VALUES($1,$2) ON CONFLICT(bot) DO UPDATE SET next_update=GREATEST(hub_offsets.next_update,EXCLUDED.next_update)',[bot,updateId+1]);
   });
  }

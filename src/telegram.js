@@ -1,3 +1,4 @@
+import { commandFor } from './bot-commands.js';
 export class TelegramError extends Error {
  constructor(code,{retryAfter=1,ambiguous=false}={}) {
   super(`Telegram request failed (${code})`);this.code=code;this.retryAfter=retryAfter;this.ambiguous=ambiguous;
@@ -30,6 +31,8 @@ export class TelegramClient {
  }
  getMe(signal){return this.call('getMe',{},signal);}
  getWebhookInfo(signal){return this.call('getWebhookInfo',{},signal);}
+ setCommands(commands,signal){return this.call('setMyCommands',{commands},signal);}
+ typing(destination,signal){return this.call('sendChatAction',{chat_id:destination.chatId,action:'typing',...(destination.topic?{message_thread_id:destination.topic}:{})},signal);}
  getUpdates(offset,signal){return this.call('getUpdates',{offset,timeout:30,allowed_updates:['message']},signal);}
  send(destination,text,signal){return this.call('sendMessage',{
   chat_id:destination.chatId,text,
@@ -38,7 +41,7 @@ export class TelegramClient {
  },signal);}
 }
 
-export function routeTelegram(bot,update,{allowedUsers,allowedChats=[],agent='codex-default'}={}) {
+export function routeTelegram(bot,update,{allowedUsers,allowedChats=[],agent='codex-default',username,notifications=false}={}) {
  if(!Number.isSafeInteger(update?.update_id)||update.update_id<0)throw new Error('Invalid update');
  const message=update.message;
  if(!message||typeof message.text!=='string'||!message.text.trim()||Buffer.byteLength(message.text)>65536)return undefined;
@@ -46,12 +49,14 @@ export function routeTelegram(bot,update,{allowedUsers,allowedChats=[],agent='co
  const user=String(message.from.id),chat=String(message.chat.id);
  if(!allowedUsers.includes(user))return undefined;
  if(allowedChats.length?!allowedChats.includes(chat):message.chat.type!=='private'||chat!==user)return undefined;
+ const command=commandFor(message.text,username);
+ if(command==='other-bot')return undefined;
  const topic=message.message_thread_id;
  if(topic!==undefined&&(!Number.isSafeInteger(topic)||topic<=0))return undefined;
  return {
   eventKey:JSON.stringify(['telegram',bot,update.update_id]),
   session:JSON.stringify(['telegram',bot,chat,user,topic??0,agent]),runtime:'codex',
-  payload:{text:message.text,agent,delivery:{bot,chatId:chat,topic,replyTo:message.message_id}}
+  payload:{text:message.text,agent,...(command?{command}:{}),...(notifications?{notifications:true}:{}),delivery:{bot,chatId:chat,topic,replyTo:message.message_id}}
  };
 }
 

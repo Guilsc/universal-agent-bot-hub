@@ -8,7 +8,7 @@ import { TelegramClient,TelegramError,routeTelegram,splitReply } from '../src/te
 import { pollOnce,deliveryOnce } from '../src/gateway.js';
 import { workOnce } from '../src/worker.js';
 import { createWebhookServer } from '../src/webhook.js';
-import { loadConfig } from '../src/config.js';
+import { loadConfig,loadRunnerConfig } from '../src/config.js';
 
 const routes={allowedUsers:['42'],allowedChats:[]};
 const update=(id,text='hello',user=42)=>({update_id:id,message:{message_id:id+100,from:{id:user},chat:{id:user,type:'private'},text}});
@@ -120,4 +120,47 @@ test('webhook authenticates, rejects malformed requests and waits for persistenc
 test('configuration fails closed without authorized users',async()=>{
  await assert.rejects(loadConfig({}),/TELEGRAM_ALLOWED_USERS/);
  await assert.rejects(loadConfig({TELEGRAM_ALLOWED_USERS:'42',TELEGRAM_MODE:'webhook'}),/WEBHOOK_SECRET/);
+});
+
+test('commands reset only their conversation and never invoke the model',async()=>{
+ const db=await database();const q=db.queue;
+ try {
+  await q.migrate();
+  await q.recordUpdate('bot',1,routeTelegram('bot',update(1,'remember blue'),routes));
+  await workOnce(q,async()=>({text:'blue remembered'}));
+  await q.recordUpdate('bot',2,routeTelegram('bot',update(2,'/new'),routes));
+  await workOnce(q,async()=>{throw new Error('commands must not invoke Codex');});
+  await q.recordUpdate('bot',3,routeTelegram('bot',update(3,'fresh'),routes));
+  await workOnce(q,async job=>{assert.equal(job.payload.text,'fresh');return{text:'fresh answer'};});
+  await q.recordUpdate('bot',4,routeTelegram('bot',update(4,'/status'),routes));
+  await workOnce(q,async()=>{throw new Error('status must not invoke Codex');},{capabilities:{sandbox:'workspace-write',webSearch:'live',historyTurns:20}});
+  assert.match((await db.query("SELECT text FROM hub_outbox WHERE text LIKE 'Bot Codex%'")).rows[0].text,/escrita na pasta de trabalho/);
+  await q.recordUpdate('bot',5,routeTelegram('bot',update(5,'continue'),routes));
+  await workOnce(q,async job=>{assert.match(job.payload.text,/fresh answer/);assert.doesNotMatch(job.payload.text,/blue|Bot Codex/);return{text:'continued'};});
+  assert.equal(routeTelegram('bot',update(6,'/new@someone_else'),{...routes,username:'ours'}),undefined);
+  assert.equal(routeTelegram('bot',update(7,'/new@ours'),{...routes,username:'ours'}).payload.command,'new');
+  assert.equal(routeTelegram('bot',update(8,'/new',99),routes),undefined);
+ }finally{await db.close();}
+});
+
+test('receipt is persisted once and precedes the final answer; progress failure does not fail work',async()=>{
+ const db=await database();const q=db.queue;
+ try {
+  await q.migrate();const job=routeTelegram('bot',update(1),{...routes,notifications:true});
+  await q.recordUpdate('bot',1,job);await q.recordUpdate('bot',1,job);
+  assert.equal((await db.query('SELECT count(*)::int AS n FROM hub_outbox')).rows[0].n,1);
+  let progress=0;
+  await workOnce(q,async()=>({text:'finished'}),{onProgress:async()=>{progress++;throw new Error('typing unavailable');}});
+  const messages=[];
+  const telegram={send:async(_,text)=>{messages.push(text);return{message_id:messages.length};}};
+  await deliveryOnce(q,telegram,'bot');await deliveryOnce(q,telegram,'bot');
+  assert.equal(progress,1);assert.match(messages[0],/Recebi/);assert.equal(messages[1],'finished');
+ }finally{await db.close();}
+});
+
+test('runner configuration validates unattended tools and bounded memory',()=>{
+ assert.throws(()=>loadRunnerConfig({CODEX_SANDBOX:'danger-full-access'}),/SANDBOX/);
+ assert.throws(()=>loadRunnerConfig({HISTORY_TURNS:'0'}),/HISTORY/);
+ assert.throws(()=>loadRunnerConfig({CODEX_TIMEOUT_MS:'NaN'}),/TIMEOUT/);
+ assert.equal(loadRunnerConfig({CODEX_SANDBOX:'workspace-write',CODEX_WEB_SEARCH:'live',HISTORY_TURNS:'20'}).historyTurns,20);
 });

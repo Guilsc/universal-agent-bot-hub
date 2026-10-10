@@ -4,18 +4,22 @@ import { mkdir,readFile,mkdtemp,rm,writeFile,open,stat } from 'node:fs/promises'
 import { resolve,join } from 'node:path';
 import { resolveCodexExecutable } from './codex-executable.js';
 
-export function createCodexRunner({root,executable,spawnProcess=spawn,timeoutMs=120000,maxBytes=1024*1024,authHome}={}) {
+export function createCodexRunner({root,executable,spawnProcess=spawn,timeoutMs=120000,maxBytes=1024*1024,authHome,sandbox='read-only',webSearch='disabled',reasoningEffort='medium'}={}) {
  if (!root) throw new Error('Worker root required');
+ if(!['read-only','workspace-write'].includes(sandbox)||!['disabled','cached','live'].includes(webSearch))throw new Error('Invalid Codex capabilities');
  return async (job,{signal}={}) => {
   if(typeof job?.payload?.text!=='string'||Buffer.byteLength(job.payload.text)>65536) throw new Error('Invalid Codex input');
   const codexExecutable=await resolveCodexExecutable({executable});
   const sessionDir=resolve(root,createHash('sha256').update(job.session).digest('hex'));
   await mkdir(sessionDir,{recursive:true});
   const runDir=await mkdtemp(join(sessionDir,'run-'));
+  const workspace=join(sessionDir,'workspace');await mkdir(workspace,{recursive:true});
   const output=join(runDir,'response.txt');
   const prompt=join(runDir,'prompt.txt');
   const log=join(runDir,'process.log');
-  const args=['exec','--sandbox','read-only','--skip-git-repo-check','--ephemeral','--ignore-user-config','--color','never','-C',runDir,'-o',output,'-'];
+  const args=['exec','--sandbox',sandbox,'--skip-git-repo-check','--ephemeral','--ignore-user-config','--color','never',
+   '-c','approval_policy="never"','-c',`web_search="${webSearch}"`,'-c',`model_reasoning_effort="${reasoningEffort}"`,
+   '-c',`sandbox_workspace_write.network_access=${webSearch==='live'}`,'-C',workspace,'-o',output,'-'];
   // Never pass database, Telegram or unrelated service secrets to the agent.
   const env={};
   for(const key of ['PATH','Path','SystemRoot','WINDIR','TEMP','TMP','HOME','USERPROFILE']) if(process.env[key]) env[key]=process.env[key];

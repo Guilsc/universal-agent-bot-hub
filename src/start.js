@@ -5,13 +5,14 @@ import { createCodexRunner } from './codex-runner.js';
 import { workOnce } from './worker.js';
 import { pollOnce,deliveryOnce,serviceLoop } from './gateway.js';
 import { createWebhookServer } from './webhook.js';
+import { botCommands } from './bot-commands.js';
 
 const controller=new AbortController();const {signal}=controller;
 for(const event of ['SIGINT','SIGTERM'])process.on(event,()=>controller.abort());
 let queue,lock,server,lockHeld=false;
 try {
  const config=await loadConfig();
- queue=PostgresQueue.connect(config.databaseUrl);await queue.migrate();
+ queue=PostgresQueue.connect(config.databaseUrl,{historyTurns:config.runner.historyTurns});await queue.migrate();
  const telegram=new TelegramClient(config.token);const me=await telegram.getMe(signal);
  if(me.username?.toLowerCase()!==config.username.replace(/^@/,'').toLowerCase())throw new Error('Telegram bot identity mismatch');
  const bot=String(me.id);
@@ -21,6 +22,7 @@ try {
  const acquired=await lock.query('SELECT pg_try_advisory_lock(hashtext($1)) AS acquired',['hub-gateway:'+bot]);
  if(!acquired.rows[0].acquired)throw new Error('Another gateway is already running for this bot');
  lockHeld=true;
+ try {await telegram.setCommands(botCommands,signal);}catch{console.error('Telegram command menu unavailable');}
  const loops=[];
  if(config.mode==='webhook') {
   server=createWebhookServer({queue,bot,routes:config.routes,secret:config.webhookSecret});
@@ -28,8 +30,10 @@ try {
  }else loops.push(serviceLoop(()=>pollOnce(queue,telegram,bot,config.routes,signal),{signal,onError:()=>console.error('Telegram polling unavailable; retrying'),idleMs:1500}));
  loops.push(serviceLoop(()=>deliveryOnce(queue,telegram,bot,signal),{signal,onError:()=>console.error('Outbox unavailable; retrying')}));
  if(!process.argv.includes('--gateway-only')) {
-  const run=createCodexRunner({root:config.workerRoot,authHome:config.authHome,executable:config.executable});
-  loops.push(serviceLoop(()=>workOnce(queue,run,{signal,onFailure:()=>console.error('Codex attempt failed; retry/dead-letter recorded')}),{signal,onError:()=>console.error('Worker queue unavailable; retrying')}));
+  const run=createCodexRunner({root:config.workerRoot,authHome:config.authHome,executable:config.executable,...config.runner});
+  loops.push(serviceLoop(()=>workOnce(queue,run,{signal,capabilities:config.runner,
+   onProgress:config.routes.notifications?(job,signal)=>telegram.typing(job.payload.delivery,signal):undefined,
+   onFailure:()=>console.error('Codex attempt failed; retry/dead-letter recorded')}),{signal,onError:()=>console.error('Worker queue unavailable; retrying')}));
  }
  console.log(`Hub running: ${config.mode}; bot @${me.username}; authorized users ${config.routes.allowedUsers.length}`);
  await Promise.all(loops);

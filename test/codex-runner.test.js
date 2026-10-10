@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { EventEmitter } from 'node:events';
-import { readFileSync,writeFileSync } from 'node:fs';
+import { readFileSync,writeFileSync,existsSync } from 'node:fs';
 import { spawn } from 'node:child_process';
 import { mkdtemp,writeFile,rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -48,4 +48,25 @@ test('internal permission errors are identified without leaking logs',async()=>{
  };
  try {await assert.rejects(createCodexRunner({root,spawnProcess})({session:'denied',payload:{text:'hello'}}),e=>e.message==='Codex internal startup denied by environment');}
  finally{await rm(root,{recursive:true,force:true});}
+});
+
+test('workspace files survive turns while per-run prompt and logs are removed',async()=>{
+ const root=await mkdtemp(join(tmpdir(),'codex-workspace-'));let workspace,runDir,turn=0;
+ const spawnProcess=(exe,args,options)=>{
+  assert.ok(args.includes('workspace-write'));assert.ok(args.includes('web_search="live"'));
+  assert.ok(args.includes('sandbox_workspace_write.network_access=true'));
+  assert.equal(options.env.DATABASE_URL,undefined);
+  const next=args[args.indexOf('-C')+1];if(workspace)assert.equal(next,workspace);workspace=next;
+  const file=join(workspace,'note.txt');
+  if(turn++)assert.equal(readFileSync(file,'utf8'),'saved memory');else writeFileSync(file,'saved memory');
+  assert.equal(existsSync(join(workspace,'prompt.txt')),false);
+  const output=args[args.indexOf('-o')+1];runDir=join(output,'..');
+  const child=new EventEmitter();child.kill=()=>true;
+  writeFileSync(output,'done');setTimeout(()=>child.emit('close',0),1);return child;
+ };
+ try {
+  const run=createCodexRunner({root,spawnProcess,sandbox:'workspace-write',webSearch:'live'});
+  await run({session:'same',payload:{text:'first'}});assert.equal(existsSync(runDir),false);
+  await run({session:'same',payload:{text:'second'}});assert.equal(existsSync(join(workspace,'note.txt')),true);
+ }finally{await rm(root,{recursive:true,force:true});}
 });

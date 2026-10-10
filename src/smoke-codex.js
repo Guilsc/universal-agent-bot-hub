@@ -1,5 +1,7 @@
 import { createCodexRunner } from './codex-runner.js';
+import { loadRunnerConfig } from './config.js';
 const run=createCodexRunner({
+ ...loadRunnerConfig(),
  root:process.env.WORKER_ROOT||'work/codex-smoke',
  executable:process.env.CODEX_BIN,
  authHome:process.env.CODEX_AUTH_HOME,

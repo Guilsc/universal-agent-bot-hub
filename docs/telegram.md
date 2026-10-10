@@ -9,7 +9,30 @@ Requirements: Node.js 24+, a dedicated PostgreSQL database, authenticated Codex 
 
 Do not run this process for a bot already owned by another polling process. A database advisory lock prevents a second hub gateway from starting against the same database and bot. An existing Telegram webhook is detected and is never deleted automatically. Telegram-side polling conflicts are reported as safe retry messages.
 
-For separate processes, use `npm run gateway` and `npm run worker`. The gateway needs the Telegram token and database; the worker needs DATABASE_URL, WORKER_ROOT and CODEX_AUTH_HOME. It does not need a Telegram token. Codex child processes receive a filtered environment, so neither the Telegram token nor DATABASE_URL is inherited. Use dedicated runtime containers with resource and network limits when deploying; a separate folder and read-only Codex sandbox alone do not provide full container isolation.
+For separate processes, use `npm run gateway` and `npm run worker`. The gateway needs the Telegram token and database; the worker needs DATABASE_URL, WORKER_ROOT and CODEX_AUTH_HOME. It does not need a Telegram token. The receipt notification works in either mode; the typing indicator is available with the combined `npm start`. Codex child processes receive a filtered environment, so neither the Telegram token nor DATABASE_URL is inherited. Use dedicated runtime containers with resource and network limits when deploying; a separate folder and Codex sandbox alone do not provide full container isolation.
+
+## Assistant behavior and tools
+
+Authorized users can send `/help` (or `/start`), `/new` (or `/reset`) and `/status`. These commands run locally without calling the model, obey session ordering and produce durable replies. `/new` starts a history boundary for this bot/chat/user/topic/agent conversation; it does not delete previous jobs or workspace files. Commands addressed to another bot are ignored. The gateway registers the command menu at startup.
+
+`TELEGRAM_PROGRESS=true` (default) adds a durable receipt acknowledgement for each ordinary message and a best-effort typing indicator while the combined worker executes. Set it to `false` to receive only final answers. Replayed updates do not duplicate acknowledgements. Typing errors never fail a job.
+
+The Hermes-like text assistant profile uses:
+
+```dotenv
+CODEX_SANDBOX=workspace-write
+CODEX_WEB_SEARCH=live
+CODEX_REASONING_EFFORT=medium
+CODEX_TIMEOUT_MS=1800000
+HISTORY_TURNS=20
+TELEGRAM_PROGRESS=true
+```
+
+The default remains `read-only`, disabled web search, a two-minute execution deadline and six history turns. `workspace-write` allows Codex file edits and shell commands in a persistent directory per conversation under `WORKER_ROOT`. Each run's prompt/log/output files live separately and are removed afterwards; workspace files survive successful and failed turns. `live` enables built-in web search and outbound network access for workspace commands. Approval policy is `never` for unattended runs, so operations that require escalation fail rather than waiting for input. Managed Codex policy still applies. User config and its unrelated integrations are not automatically loaded.
+
+The deadline is a hard limit per attempt, not Hermes's inactivity timeout. History is bounded by both the configured turn count (1–50) and the prompt size; older turns may be omitted. The model remains the authenticated Codex default. Hermes's provider-specific aliases, voice, attachments, visual browser, scheduling and connector tools are not implemented here. This profile offers equivalent text conversation behavior and the supported Codex file/shell/web tools, not an identical Hermes runtime.
+
+Codex configuration reference: https://learn.chatgpt.com/docs/config-file/config-reference.
 
 ## Webhook mode
 
@@ -17,7 +40,7 @@ Set TELEGRAM_MODE=webhook, TELEGRAM_WEBHOOK_SECRET_FILE and an appropriate HOST/
 
 ## Reliability and limitations
 
-Incoming updates and polling offsets commit together. Replayed updates cannot create duplicate jobs. Jobs route deterministically to Codex, serialize within bot/chat/user/topic/agent sessions, retain the last six successful turns with a bounded prompt, retry with leases and fencing, and record a generic user-facing failure reply after explicit final failure.
+Incoming updates and polling offsets commit together. Replayed updates cannot create duplicate jobs. Jobs route deterministically to Codex, serialize within bot/chat/user/topic/agent sessions, retain successful turns since the latest `/new` with a bounded prompt, retry with leases and fencing, and record a generic user-facing failure reply after explicit final failure.
 
 Worker completion and outgoing chunks commit in one transaction. Replies split into chunks below Telegram's text limit without breaking Unicode surrogate pairs. Delivery is ordered per session, retries explicit 429 rate limits, and records permanent 4xx failures. Telegram sendMessage has no application-supplied idempotency key: a network error, 5xx response or expired sending lease can leave delivery uncertain. Such rows are marked `uncertain` and block subsequent replies for that session until an operator checks the chat and resolves the row. The hub does not blindly resend and risk duplicate replies. Before manually requeueing, verify whether the message reached Telegram. Do not claim exactly-once external delivery.
 
