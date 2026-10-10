@@ -3,13 +3,15 @@ Independent multichannel agent platform — architecture v0.3, Telegram first.
 
 ## Run locally
 
-Requires Node.js 24 or newer. No dependencies or tokens are required.
+Requires Node.js 24 or newer. The mock demo needs no tokens.
 
 ```sh
+npm ci
 npm test
 npm run demo
 ```
 
-This is a development foundation with SQLite queue storage and a mock worker.
-Telegram networking, a real Codex worker and PostgreSQL are pending. See
-[Block 4 plan](docs/block-4.md) for implemented behavior and production gaps.
+The original demo uses SQLite and a mock worker. A PostgreSQL queue adapter
+and Codex CLI process worker are now implemented; see
+[development setup](docs/development.md) for configuration and test limitations.
+Telegram networking and production deployment are pending.
