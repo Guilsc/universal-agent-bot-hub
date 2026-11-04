@@ -26,10 +26,12 @@ export async function loadConfig(env=process.env) {
  if(mode==='webhook'&&!/^[A-Za-z0-9_-]{32,256}$/.test(webhookSecret))throw new Error('Webhook secret must contain 32-256 URL-safe characters');
  const port=Number(env.PORT||3000);if(!Number.isSafeInteger(port)||port<1||port>65535)throw new Error('Invalid PORT');
  const runner=loadRunnerConfig(env);
+ const username=(env.TELEGRAM_BOT_USERNAME||'').trim().replace(/^@/,'');
+ if(!/^[A-Za-z0-9_]{5,32}$/.test(username))throw new Error('TELEGRAM_BOT_USERNAME must be the bot username from BotFather');
  return {
   databaseUrl:await readSecret(env,'DATABASE_URL'),token:await readSecret(env,'TELEGRAM_BOT_TOKEN'),
-  username:env.TELEGRAM_BOT_USERNAME||'guilherme_local_codex_agent_bot',
-  runner,routes:{allowedUsers,allowedChats,agent:env.AGENT_ID||'codex-default',username:env.TELEGRAM_BOT_USERNAME||'guilherme_local_codex_agent_bot',notifications:env.TELEGRAM_PROGRESS!=='false'},mode,webhookSecret,port,
+  username,
+  runner,routes:{allowedUsers,allowedChats,agent:env.AGENT_ID||'codex-default',username,notifications:env.TELEGRAM_PROGRESS!=='false'},mode,webhookSecret,port,
   host:env.HOST||'127.0.0.1',workerRoot:env.WORKER_ROOT||'work/worker',authHome:env.CODEX_AUTH_HOME,executable:env.CODEX_BIN
  };
 }

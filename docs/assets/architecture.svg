@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="730" viewBox="0 0 1200 730" role="img" aria-labelledby="universal-agent-bot-hub-title universal-agent-bot-hub-desc" id="architecture-root"><title id="universal-agent-bot-hub-title">Agent Bot Hub | Durable work, deliberate delivery</title><desc id="universal-agent-bot-hub-desc">AUTHORIZED INGRESS TO WORK. TRANSACTIONAL COMPLETION TO DELIVERY. Telegram ingress: Allowlisted users, chats, and identity. Durable queue: Conversation order, leases, fencing. Codex worker: Bounded child-process execution. Transactional completion: History and replies stored together. Durable reply outbox: Delivery is separate from inference. Telegram delivery: Ambiguous sends stop for review. Tests use controlled transports and PGlite. Live credentials, provider calls, and independent PostgreSQL need separate checks.</desc>
+<rect width="1200" height="730" fill="#101d24"/>
+<defs>
+      <style>#architecture-root { color: #eef5f5; font-family: system-ui,sans-serif; }</style><marker id="architecture-universal-agent-bot-hub-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#b6cbd0"/></marker></defs>
+<text x="60" y="66" fill="#68b9ac" font-family="ui-monospace,monospace" font-size="13" letter-spacing="2">ARCHITECTURE / MAINTAINABLE SOURCE</text>
+<text x="60" y="110" fill="#eef5f5" font-family="system-ui,sans-serif" font-size="27" font-weight="600">Agent Bot Hub | Durable work, deliberate delivery</text>
+<text x="60" y="177" fill="#b6cbd0" font-family="ui-monospace,monospace" font-size="13" letter-spacing="1.5">AUTHORIZED INGRESS TO WORK</text>
+<path d="M 360 264 H 450" fill="none" stroke="#b6cbd0" stroke-width="1.5" marker-end="url(#architecture-universal-agent-bot-hub-arrow)"/>
+<path d="M 750 264 H 840" fill="none" stroke="#b6cbd0" stroke-width="1.5" marker-end="url(#architecture-universal-agent-bot-hub-arrow)"/>
+<rect x="60" y="210" width="300" height="112" rx="8" fill="#1a3039" stroke="#b6cbd0" stroke-width="1.2"/>
+<text x="80" y="243" fill="#eef5f5" font-family="system-ui,sans-serif" font-size="17" font-weight="600">Telegram ingress</text>
+<text x="80" y="270" fill="#b6cbd0" font-family="system-ui,sans-serif" font-size="13.5">Allowlisted users, chats, and</text>
+<text x="80" y="290" fill="#b6cbd0" font-family="system-ui,sans-serif" font-size="13.5">identity</text>
+<rect x="450" y="210" width="300" height="112" rx="8" fill="#68b9ac" stroke="#68b9ac" stroke-width="1.2"/>
+<text x="470" y="243" fill="#101d24" font-family="system-ui,sans-serif" font-size="17" font-weight="600">Durable queue</text>
+<text x="470" y="270" fill="#101d24" font-family="system-ui,sans-serif" font-size="13.5">Conversation order, leases,</text>
+<text x="470" y="290" fill="#101d24" font-family="system-ui,sans-serif" font-size="13.5">fencing</text>
+<rect x="840" y="210" width="300" height="112" rx="8" fill="#1a3039" stroke="#b6cbd0" stroke-width="1.2"/>
+<text x="860" y="243" fill="#eef5f5" font-family="system-ui,sans-serif" font-size="17" font-weight="600">Codex worker</text>
+<text x="860" y="270" fill="#b6cbd0" font-family="system-ui,sans-serif" font-size="13.5">Bounded child-process execution</text>
+<text x="60" y="407" fill="#b6cbd0" font-family="ui-monospace,monospace" font-size="13" letter-spacing="1.5">TRANSACTIONAL COMPLETION TO DELIVERY</text>
+<path d="M 360 494 H 450" fill="none" stroke="#b6cbd0" stroke-width="1.5" marker-end="url(#architecture-universal-agent-bot-hub-arrow)"/>
+<path d="M 750 494 H 840" fill="none" stroke="#b6cbd0" stroke-width="1.5" marker-end="url(#architecture-universal-agent-bot-hub-arrow)"/>
+<rect x="60" y="440" width="300" height="112" rx="8" fill="#1a3039" stroke="#b6cbd0" stroke-width="1.2"/>
+<text x="80" y="473" fill="#eef5f5" font-family="system-ui,sans-serif" font-size="17" font-weight="600">Transactional completion</text>
+<text x="80" y="500" fill="#b6cbd0" font-family="system-ui,sans-serif" font-size="13.5">History and replies stored</text>
+<text x="80" y="520" fill="#b6cbd0" font-family="system-ui,sans-serif" font-size="13.5">together</text>
+<rect x="450" y="440" width="300" height="112" rx="8" fill="#68b9ac" stroke="#68b9ac" stroke-width="1.2"/>
+<text x="470" y="473" fill="#101d24" font-family="system-ui,sans-serif" font-size="17" font-weight="600">Durable reply outbox</text>
+<text x="470" y="500" fill="#101d24" font-family="system-ui,sans-serif" font-size="13.5">Delivery is separate from</text>
+<text x="470" y="520" fill="#101d24" font-family="system-ui,sans-serif" font-size="13.5">inference</text>
+<rect x="840" y="440" width="300" height="112" rx="8" fill="#1a3039" stroke="#b6cbd0" stroke-width="1.2"/>
+<text x="860" y="473" fill="#eef5f5" font-family="system-ui,sans-serif" font-size="17" font-weight="600">Telegram delivery</text>
+<text x="860" y="500" fill="#b6cbd0" font-family="system-ui,sans-serif" font-size="13.5">Ambiguous sends stop for review</text>
+<path d="M 60 609 H 1140" stroke="#b6cbd0" stroke-width="1" opacity="0.4"/>
+<text x="60" y="643" fill="#b6cbd0" font-family="system-ui,sans-serif" font-size="14">Tests use controlled transports and PGlite. Live credentials, provider calls, and independent PostgreSQL need separate</text>
+<text x="60" y="665" fill="#b6cbd0" font-family="system-ui,sans-serif" font-size="14">checks.</text>
+<text x="60" y="705" fill="#b6cbd0" font-family="ui-monospace,monospace" font-size="11">universal-agent-bot-hub / source-aware view / no runtime certification</text></svg>
