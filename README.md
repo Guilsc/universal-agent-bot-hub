@@ -20,9 +20,11 @@ The demo uses SQLite and the mock runtime, not Telegram, PostgreSQL, or a live m
 
 ## Architecture
 
-![Repository architecture](docs/assets/architecture.svg)
+![Authorized request, durable PostgreSQL work, Codex run, and stored reply](docs/assets/architecture.svg)
 
-[Editable HTML/SVG source](docs/architecture.html) · [Diagram style](docs/assets/architecture.style.json)
+The sequence describes the PostgreSQL implementation, not the retained SQLite/mock demo. Delivery has its own state boundary. The SVGs are the editable sources.
+
+![Outbox delivery states and explicit operator decisions](docs/assets/delivery-states.svg)
 
 
 The gateway authorizes incoming users/chats and persists updates. Workers claim leased jobs in conversation order; successful completion stores history and outgoing replies transactionally. Delivery is a separate loop. Ambiguous Telegram sends stop in `uncertain` state for operator review rather than blindly resending. See the [diagram and source map](docs/architecture.md).
@@ -62,7 +64,7 @@ Use a development branch and keep transport/runtime adapters behind their existi
 - Runtime databases, worker files, authentication, tokens, and message history are private operational data. Configure retention, backups, secret rotation, resource limits, and process-tree isolation before deployment.
 - Webhook `/healthz` checks database reachability, not model availability or end-to-end delivery. Polling mode opens no HTTP listener.
 
-Production deployment and live Telegram/Codex exchanges are not established by the local tests. No license is declared in this repository; do not assume permission to redistribute it under an invented license.
+Production deployment and live Telegram/Codex exchanges are not established by the local tests.
 
 ## License
 

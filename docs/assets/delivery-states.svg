@@ -1,0 +1,63 @@
+<?xml version="1.0" ?>
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="630" viewBox="0 0 960 630" role="img" aria-labelledby="outbox-title outbox-desc">
+  <title id="outbox-title">An unknown send is not a failed send</title>
+  <desc id="outbox-desc">An outgoing reply starts queued. A delivery claim moves it to sending. A confirmed success moves it to sent. An ambiguous network outcome or an expired sending lease moves it to uncertain. An operator inspects the chat and explicitly marks sent, retries by requeueing, or discards as dead. Unknown outcomes are not blindly resent.</desc>
+  <defs>
+    <marker id="outbox-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+      <path d="M0 0 L8 4 L0 8Z" fill="#bcc6d3"/>
+    </marker>
+    <marker id="outbox-accent" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+      <path d="M0 0 L8 4 L0 8Z" fill="#f08a59"/>
+    </marker>
+  </defs>
+  <rect width="960" height="630" rx="12" fill="#101722"/>
+  <g font-family="Arial,Helvetica,sans-serif">
+    <path d="M270 225 H380" fill="none" stroke="#bcc6d3" stroke-width="1.8" marker-end="url(#outbox-arrow)"/>
+    <rect x="296.5" y="185" width="57.0" height="25" rx="3" fill="#101722"/>
+    <text x="325" y="203" font-size="16" fill="#bcc6d3" text-anchor="middle" font-weight="400" letter-spacing="0">claim</text>
+    <path d="M580 225 H690" fill="none" stroke="#f08a59" stroke-width="1.8" marker-end="url(#outbox-accent)"/>
+    <rect x="598.3" y="185" width="73.39999999999999" height="25" rx="3" fill="#101722"/>
+    <text x="635" y="203" font-size="16" fill="#f08a59" text-anchor="middle" font-weight="400" letter-spacing="0">success</text>
+    <path d="M480 270 V364" fill="none" stroke="#bcc6d3" stroke-width="1.8" marker-end="url(#outbox-arrow)"/>
+    <rect x="377.7" y="305" width="204.6" height="25" rx="3" fill="#101722"/>
+    <text x="480" y="323" font-size="16" fill="#bcc6d3" text-anchor="middle" font-weight="400" letter-spacing="0">unknown / lease expires</text>
+    <path d="M330 412 H176 Q168 412 168 404 V270" fill="none" stroke="#bcc6d3" stroke-width="1.8" stroke-dasharray="5 4" marker-end="url(#outbox-arrow)"/>
+    <rect x="100.60000000000001" y="341" width="130.79999999999998" height="25" rx="3" fill="#101722"/>
+    <text x="166" y="359" font-size="16" fill="#bcc6d3" text-anchor="middle" font-weight="400" letter-spacing="0">explicit retry</text>
+    <path d="M630 412 H782 Q790 412 790 404 V270" fill="none" stroke="#bcc6d3" stroke-width="1.8" stroke-dasharray="5 4" marker-end="url(#outbox-arrow)"/>
+    <rect x="741.1" y="341" width="89.8" height="25" rx="3" fill="#101722"/>
+    <text x="786" y="359" font-size="16" fill="#bcc6d3" text-anchor="middle" font-weight="400" letter-spacing="0">mark sent</text>
+    <path d="M480 460 V514" fill="none" stroke="#bcc6d3" stroke-width="1.8" stroke-dasharray="5 4" marker-end="url(#outbox-arrow)"/>
+    <rect x="443.3" y="476" width="73.39999999999999" height="25" rx="3" fill="#101722"/>
+    <text x="480" y="494" font-size="16" fill="#bcc6d3" text-anchor="middle" font-weight="400" letter-spacing="0">discard</text>
+    <text x="36" y="40" font-size="12" fill="#bcc6d3" text-anchor="start" font-weight="400" letter-spacing="1.8">UNIVERSAL AGENT BOT HUB</text>
+    <text x="36" y="80" font-size="29" fill="#f3f1e9" text-anchor="start" font-weight="600" letter-spacing="0">An unknown send is not a failed send</text>
+    <text x="36" y="110" font-size="17" fill="#bcc6d3" text-anchor="start" font-weight="400" letter-spacing="0">Selected PostgreSQL outbox transitions · not every retry path</text>
+    <g data-node-id="queued">
+      <rect data-role="bounds" x="70" y="180" width="200" height="90" rx="9" fill="#1a2636" stroke="#bcc6d3" stroke-width="1"/>
+      <text x="170.0" y="211" font-size="20" fill="#f3f1e9" text-anchor="middle" font-weight="600" letter-spacing="0">queued</text>
+      <text x="170.0" y="238" font-size="16" fill="#bcc6d3" text-anchor="middle" font-weight="400" letter-spacing="0">Stored reply</text>
+    </g>
+    <g data-node-id="sending">
+      <rect data-role="bounds" x="380" y="180" width="200" height="90" rx="9" fill="#1a2636" stroke="#bcc6d3" stroke-width="1"/>
+      <text x="480.0" y="211" font-size="20" fill="#f3f1e9" text-anchor="middle" font-weight="600" letter-spacing="0">sending</text>
+      <text x="480.0" y="238" font-size="16" fill="#bcc6d3" text-anchor="middle" font-weight="400" letter-spacing="0">Leased attempt</text>
+    </g>
+    <g data-node-id="sent">
+      <rect data-role="bounds" x="690" y="180" width="200" height="90" rx="9" fill="#1a2636" stroke="#bcc6d3" stroke-width="1"/>
+      <text x="790.0" y="211" font-size="20" fill="#f3f1e9" text-anchor="middle" font-weight="600" letter-spacing="0">sent</text>
+      <text x="790.0" y="238" font-size="16" fill="#bcc6d3" text-anchor="middle" font-weight="400" letter-spacing="0">Confirmed delivery</text>
+    </g>
+    <g data-node-id="uncertain">
+      <rect data-role="bounds" x="330" y="364" width="300" height="96" rx="9" fill="#1a2636" stroke="#f08a59" stroke-width="2"/>
+      <text x="480.0" y="395" font-size="20" fill="#f3f1e9" text-anchor="middle" font-weight="600" letter-spacing="0">uncertain</text>
+      <text x="480.0" y="422" font-size="16" fill="#bcc6d3" text-anchor="middle" font-weight="400" letter-spacing="0">Inspect chat before deciding</text>
+    </g>
+    <g data-node-id="dead">
+      <rect data-role="bounds" x="380" y="514" width="200" height="76" rx="9" fill="#1a2636" stroke="#bcc6d3" stroke-width="1"/>
+      <text x="480.0" y="545" font-size="20" fill="#f3f1e9" text-anchor="middle" font-weight="600" letter-spacing="0">dead</text>
+      <text x="480.0" y="572" font-size="16" fill="#bcc6d3" text-anchor="middle" font-weight="400" letter-spacing="0">No further delivery</text>
+    </g>
+    <text x="36" y="610" font-size="15" fill="#bcc6d3" text-anchor="start" font-weight="400" letter-spacing="0">Operator decisions: outbox:resolve --mark-sent / --retry / --discard. No automatic ambiguity retry.</text>
+  </g>
+</svg>
