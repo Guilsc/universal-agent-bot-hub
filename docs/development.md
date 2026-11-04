@@ -1,19 +1,33 @@
-# PostgreSQL and Codex worker
+# Development and verification
 
-Requires Node.js 24+, PostgreSQL 17 and an authenticated Codex CLI. Install dependencies with `npm ci`.
+## Requirements
 
-For a local database, set POSTGRES_PASSWORD securely and run `docker compose up -d postgres`. Docker is not installed in the original development environment, so this command has not been run there.
+- Node.js 24+ and npm for the demo and test suite.
+- PostgreSQL 17 for server-backed operation and independent-connection integration tests.
+- Authenticated Codex CLI for live worker execution only; unit tests use simulated or local Node child processes.
 
-Set DATABASE_URL to the dedicated development database, WORKER_ROOT to an empty dedicated worker directory, and CODEX_AUTH_HOME to a dedicated authenticated Codex home. Start with `npm run worker`. The worker applies the idempotent schema before claiming jobs. Database credentials belong in runtime secrets, not source control. No Telegram credentials are passed to Codex.
+```sh
+npm ci
+npm test
+npm run demo
+```
 
-The PostgreSQL adapter supports enqueue, claim, renew, finish and fail. Claim/recovery transactions share an advisory lock and enforce one active job per session through a unique partial index. Jobs in a session retain FIFO order across retry backoff. Claims use database time; expired workers cannot finish or renew a successor's job. Execution does not hold the claim lock.
+`npm test` covers the SQLite prototype, PostgreSQL SQL through PGlite, authorization, webhooks, queue/outbox behavior, history, and Codex process handling. Two server-backed tests skip when `TEST_DATABASE_URL` is unset. PGlite does not establish multi-connection concurrency correctness.
 
-The worker launches `codex exec` without a shell, passes the prompt through a private file descriptor on stdin, uses read-only sandboxing and ephemeral sessions, filters environment variables, bounds elapsed time and output, and cancels on lease loss or shutdown. Output is directed to a private temporary file to avoid Windows pipe permission failures. Cleanup waits for child exit, and response size is checked before loading the file. Each job has a separate working directory derived from its session. Process sandboxing is not container isolation; deployment must add process-tree termination and CPU/memory/network limits. Conversation history is not implemented yet.
+For server-backed checks, set `TEST_DATABASE_URL` through your environment to a dedicated disposable PostgreSQL database, then run `npm test`. These tests create and drop unique schemas. Never point them at a production database. The [GitHub Actions workflow](../.github/workflows/test.yml) configures a PostgreSQL 17 service; its presence is not a claim of a passing remote run.
 
-Run `npm run smoke:codex` in a normal development terminal. On Windows the runner checks PATH for codex.exe and then discovers the desktop app under LOCALAPPDATA/OpenAI/Codex/bin, selecting the newest installed executable. CODEX_BIN can override discovery. This validates a real Codex response without Telegram credentials. In the restricted Codex desktop command environment, the CLI itself currently fails with `failed to initialize in-process app-server client: Access is denied`, even after its runtime files are writable. The worker reports this as `Codex internal startup denied by environment`. The process adapter is validated with an actual Node child process; a live model response remains unverified here. Do not disable sandboxing to work around this.
+## Local runtime
 
-`npm test` runs PostgreSQL SQL against PGlite, a local embedded PostgreSQL engine, and tests simulated and real child processes. Set TEST_DATABASE_URL to a dedicated test database to also test simultaneous claims through independent PostgreSQL connections. This test creates and drops a unique test schema. The concurrency test passed locally on a native PostgreSQL 17.10 server with eight simultaneous pool connections. GitHub Actions is activated with a dedicated PostgreSQL 17 service. Embedded tests alone do not establish server concurrency correctness.
+The included Compose file provides only PostgreSQL, bound to localhost. Set `POSTGRES_PASSWORD` securely before `docker compose up -d postgres`. It does not start the gateway or worker. Configure `.env` from `.env.example`; follow [Telegram setup](telegram.md) for the combined application or split processes.
 
-The SQLite prototype remains available for its demo. Existing SQLite data is not automatically migrated. Telegram ingress, delivery, history and the outbox are now implemented; see telegram.md. Production deployment remains pending.
+The worker uses `DATABASE_URL` (or `DATABASE_URL_FILE`), `WORKER_ROOT`, and optional `CODEX_AUTH_HOME` / `CODEX_BIN`. It applies the idempotent database schema before claiming jobs. The gateway additionally requires the Telegram token, explicit bot username, and authorized numeric user IDs.
 
-Codex execution reference: https://developers.openai.com/codex/noninteractive
+## Worker contracts
+
+Claims use database time, session ordering, leases, and fencing. Expired workers cannot finish a successor's work. Successful completion records history and outgoing replies transactionally. Telegram delivery is not exactly-once; uncertain sends need manual resolution.
+
+Codex launches without a shell, with a filtered environment that excludes database and Telegram credentials. Defaults are read-only sandboxing and disabled web search; supported overrides and history limits are documented in [Telegram setup](telegram.md). Persistent workspace directories are scoped by session. Per-run prompts, logs, and response files are cleaned up after child exit, including failures. Dedicated runtime containers still need resource/network limits and process-tree termination.
+
+Run `npm run smoke:codex` only in an authorized, authenticated environment. It makes a real model request and may incur usage. A passing child-process test is not evidence of a live Codex response. On Windows, the executable resolver checks PATH and then the desktop installation; `CODEX_BIN` explicitly overrides discovery. Do not disable sandboxing to work around environment restrictions.
+
+The SQLite demo has no automatic migration to PostgreSQL. Production deployment, live Telegram exchanges, and remote CI results require separate operator verification.

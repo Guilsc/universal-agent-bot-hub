@@ -158,6 +158,17 @@ test('receipt is persisted once and precedes the final answer; progress failure 
  }finally{await db.close();}
 });
 
+test('configuration requires an explicit bot identity and uses it for routing',async()=>{
+ const env={TELEGRAM_ALLOWED_USERS:'42',DATABASE_URL:'postgres://localhost/test',TELEGRAM_BOT_TOKEN:'synthetic-token'};
+ await assert.rejects(loadConfig(env),/TELEGRAM_BOT_USERNAME/);
+ for(const username of ['bad username','@','https://example.test']) {
+  await assert.rejects(loadConfig({...env,TELEGRAM_BOT_USERNAME:username}),/TELEGRAM_BOT_USERNAME/);
+ }
+ const config=await loadConfig({...env,TELEGRAM_BOT_USERNAME:'@example_bot'});
+ assert.equal(config.username,'example_bot');
+ assert.equal(config.routes.username,'example_bot');
+});
+
 test('runner configuration validates unattended tools and bounded memory',()=>{
  assert.throws(()=>loadRunnerConfig({CODEX_SANDBOX:'danger-full-access'}),/SANDBOX/);
  assert.throws(()=>loadRunnerConfig({HISTORY_TURNS:'0'}),/HISTORY/);
