@@ -175,3 +175,37 @@ test('runner configuration validates unattended tools and bounded memory',()=>{
  assert.throws(()=>loadRunnerConfig({CODEX_TIMEOUT_MS:'NaN'}),/TIMEOUT/);
  assert.equal(loadRunnerConfig({CODEX_SANDBOX:'workspace-write',CODEX_WEB_SEARCH:'live',HISTORY_TURNS:'20'}).historyTurns,20);
 });
+
+
+test('bot-to-bot group ingress is denied by default and isolated by explicit allowlists',()=>{
+ // Transport-level delivery and BotFather mode cannot be simulated by this unit test.
+ // Synthetic IDs avoid publishing real accounts, chats, threads, or credentials.
+ const secondBot=900001;
+ const group=-100900001;
+ const origin={update_id:901,message:{
+  message_id:11901,
+  from:{id:secondBot,is_bot:true,username:'relay_test_bot'},
+  chat:{id:group,type:'supergroup'},
+  message_thread_id:17,
+  text:'/status@hermes_test_bot'
+ }};
+ const primary={allowedUsers:['42'],allowedChats:[],username:'hermes_test_bot'};
+ assert.equal(routeTelegram('primary',origin,primary),undefined,'reject unapproved bot sender');
+ assert.equal(routeTelegram('primary',origin,{...primary,allowedUsers:[String(secondBot)]}),undefined,
+  'reject group until its chat ID is explicitly allowlisted');
+ const approved={...primary,allowedUsers:[String(secondBot)],allowedChats:[String(group)]};
+ const routed=routeTelegram('primary',origin,approved);
+ assert.equal(routed.payload.command,'status');
+ assert.equal(routed.payload.delivery.chatId,String(group));
+ assert.equal(routed.payload.delivery.topic,17);
+ assert.equal(routed.runtime,'codex');
+ assert.equal(routed.payload.agent,'codex-default');
+ assert.equal(routed.eventKey,JSON.stringify(['telegram','primary',901]));
+ assert.deepEqual(JSON.parse(routed.session),['telegram','primary',String(group),String(secondBot),17,'codex-default']);
+ const otherTopic=structuredClone(origin);otherTopic.message.message_thread_id=18;
+ assert.notEqual(routeTelegram('primary',otherTopic,approved).session,routed.session,
+  'topics must not share a conversation history');
+ const otherBotCommand=structuredClone(origin);otherBotCommand.message.text='/status@unrelated_test_bot';
+ assert.equal(routeTelegram('primary',otherBotCommand,approved),undefined,
+  'a command targeting a different bot must never be admitted');
+});
